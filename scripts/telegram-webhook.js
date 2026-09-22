@@ -56,6 +56,7 @@ await callTelegram(creds, "setMyCommands", {
   commands: [
     { command: "today", description: MENU.today },
     { command: "tomorrow", description: MENU.tomorrow },
+    { command: "all", description: MENU.all },
   ],
 });
 
@@ -64,7 +65,7 @@ await callTelegram(creds, "sendMessage", {
   chat_id: creds.chatId,
   text:
     "Меню записей подключено.\n\n" +
-    `Кнопки внизу чата — «${MENU.today}» и «${MENU.tomorrow}».\n` +
+    `Кнопки внизу чата — «${MENU.today}», «${MENU.tomorrow}» и «${MENU.all}».\n` +
     `Каждый вечер в ${DIGEST_HOUR}:00 список на завтра будет приходить сам.`,
   reply_markup: MENU_KEYBOARD,
 });
