@@ -193,7 +193,7 @@ export const FEATURES = [
  * lang — на каком языке названия услуг попадут в сообщение бота.
  */
 export const TELEGRAM = {
-  messageTitle: "🩷 НОВАЯ ЗАЯВКА",
+  messageTitle: "НОВАЯ ЗАЯВКА",
   lang: "ru",
 };
 
