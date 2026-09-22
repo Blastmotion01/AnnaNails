@@ -1,0 +1,15 @@
+{
+  "name": "beauty-booking",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Онлайн-запись для мастера маникюра с отправкой заявок в Telegram",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "telegram:setup": "node scripts/telegram-setup.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

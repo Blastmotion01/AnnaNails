@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#FBF3EE" />
+  <meta name="description" content="Онлайн-запись на маникюр и педикюр" />
+  <title>Онлайн-запись</title>
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🩷%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700&family=Playfair+Display:ital,wght@1,400;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- ============ HERO ============ -->
+  <header class="hero" id="top">
+    <div class="hero__media">
+      <!-- Фото подставляется из HERO_IMAGE в config.js -->
+      <img class="hero__img" id="heroImage" alt="" fetchpriority="high" />
+      <div class="hero__shade" aria-hidden="true"></div>
+    </div>
+
+    <nav class="topbar container">
+      <a href="#top" class="topbar__brand" data-site="name"></a>
+      <!-- Переключатель языка: кнопки создаются из LANGUAGES в config.js -->
+      <div class="lang" id="langSwitch" role="group" data-i18n-aria="lang.label"></div>
+    </nav>
+
+    <div class="hero__content container">
+      <p class="hero__eyebrow" data-site="tagline"></p>
+      <h1 class="hero__title" data-site="name"></h1>
+      <p class="hero__text" data-site="description"></p>
+      <a href="#booking" class="btn btn--light btn--lg" data-scroll>
+        <span data-i18n="hero.cta"></span>
+        <svg class="btn__arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14m0 0-6-6m6 6 6-6"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- Бегущая строка с услугами (заполняется из config.js) -->
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker__track" id="ticker"></div>
+  </div>
+
+  <main>
+    <!-- ============ ПРЕИМУЩЕСТВА ============ -->
+    <section class="features container" data-i18n-aria="features.aria">
+      <ul class="features__list" id="features"></ul>
+    </section>
+
+    <!-- ============ ЗАПИСЬ ============ -->
+    <section class="booking container" id="booking">
+      <div class="section-head">
+        <p class="eyebrow" data-i18n="booking.eyebrow"></p>
+        <h2 class="section-title" data-i18n="booking.title"></h2>
+        <p class="section-sub" data-i18n-html="booking.sub"></p>
+      </div>
+
+      <div class="card booking__card">
+        <form id="bookingForm" class="form" novalidate>
+          <!-- Honeypot для ботов: скрыто от людей -->
+          <div class="hp" aria-hidden="true">
+            <label>Website <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+          </div>
+
+          <!-- Шаг 1 -->
+          <fieldset class="step">
+            <legend class="step__title"><span class="step__num">1</span><span data-i18n="step.service"></span></legend>
+
+            <div class="field" data-field="service">
+              <span class="field__label" id="serviceLabel"><span data-i18n="service.label"></span> <span class="req">*</span></span>
+              <div class="dropdown" id="serviceDropdown">
+                <button type="button" class="dropdown__trigger" id="service" aria-haspopup="listbox"
+                  aria-expanded="false" aria-labelledby="serviceLabel service" aria-describedby="err-service">
+                  <span class="dropdown__value is-placeholder"></span>
+                  <svg class="dropdown__chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <ul class="dropdown__list" role="listbox" aria-labelledby="serviceLabel" tabindex="-1" hidden></ul>
+              </div>
+              <p class="field__error" id="err-service" role="alert"></p>
+            </div>
+
+            <div class="price" id="priceBox" aria-live="polite">
+              <div>
+                <p class="price__label" data-i18n="price.label"></p>
+                <p class="price__hint" id="priceDuration"></p>
+              </div>
+              <p class="price__value" id="priceValue">—</p>
+            </div>
+          </fieldset>
+
+          <!-- Шаг 2 -->
+          <fieldset class="step">
+            <legend class="step__title"><span class="step__num">2</span><span data-i18n="step.datetime"></span></legend>
+
+            <div class="field" data-field="date">
+              <span class="field__label" id="dateLabel"><span data-i18n="date.label"></span> <span class="req">*</span></span>
+              <input type="hidden" name="date" id="date" />
+              <div class="calendar" id="calendar" aria-labelledby="dateLabel"></div>
+              <p class="field__error" id="err-date" role="alert"></p>
+            </div>
+
+            <div class="field" data-field="time">
+              <span class="field__label" id="timeLabel"><span data-i18n="time.label"></span> <span class="req">*</span></span>
+              <input type="hidden" name="time" id="time" />
+              <div class="slots" id="slots" role="radiogroup" aria-labelledby="timeLabel"></div>
+              <p class="field__error" id="err-time" role="alert"></p>
+            </div>
+          </fieldset>
+
+          <!-- Шаг 3 -->
+          <fieldset class="step">
+            <legend class="step__title"><span class="step__num">3</span><span data-i18n="step.contacts"></span></legend>
+
+            <div class="field field--switch" data-field="hasAllergy">
+              <label class="switch" for="hasAllergy">
+                <span class="switch__text">
+                  <span class="switch__title" data-i18n="allergy.title"></span>
+                  <span class="switch__sub" data-i18n="allergy.sub"></span>
+                </span>
+                <input type="checkbox" id="hasAllergy" name="hasAllergy" role="switch" />
+                <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+              </label>
+            </div>
+
+            <div class="collapse" id="allergyBox" hidden>
+              <div class="field" data-field="allergy">
+                <label class="field__label" for="allergy"><span data-i18n="allergy.label"></span> <span class="req">*</span></label>
+                <textarea id="allergy" name="allergy" rows="3" maxlength="500"
+                  data-i18n-placeholder="allergy.placeholder" aria-describedby="err-allergy"></textarea>
+                <p class="field__error" id="err-allergy" role="alert"></p>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="field" data-field="name">
+                <label class="field__label" for="name"><span data-i18n="name.label"></span> <span class="req">*</span></label>
+                <input type="text" id="name" name="name" autocomplete="given-name" maxlength="60"
+                  data-i18n-placeholder="name.placeholder" required aria-describedby="err-name" />
+                <p class="field__error" id="err-name" role="alert"></p>
+              </div>
+
+              <div class="field" data-field="phone">
+                <label class="field__label" for="phone"><span data-i18n="phone.label"></span> <span class="req">*</span></label>
+                <input type="tel" id="phone" name="phone" autocomplete="tel" inputmode="tel"
+                  placeholder="+380 XX XXX XX XX" required aria-describedby="err-phone" />
+                <p class="field__error" id="err-phone" role="alert"></p>
+              </div>
+            </div>
+
+            <div class="field" data-field="telegram">
+              <label class="field__label" for="telegram"><span data-i18n="telegram.label"></span> <span class="optional" data-i18n="optional"></span></label>
+              <input type="text" id="telegram" name="telegram" autocomplete="off" autocapitalize="off"
+                spellcheck="false" maxlength="33" placeholder="@username" aria-describedby="err-telegram" />
+              <p class="field__error" id="err-telegram" role="alert"></p>
+            </div>
+          </fieldset>
+
+          <div class="summary" id="summary" hidden></div>
+
+          <div class="form__alert" id="formAlert" role="alert" hidden></div>
+
+          <button type="submit" class="btn btn--primary btn--lg btn--block" id="submitBtn">
+            <span class="btn__label" data-i18n="submit"></span>
+            <span class="btn__spinner" aria-hidden="true"></span>
+          </button>
+        </form>
+
+        <!-- Успешная отправка -->
+        <div class="success" id="success" hidden tabindex="-1">
+          <div class="success__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>
+          </div>
+          <h3 class="success__title" data-i18n="success.title"></h3>
+          <p class="success__text" data-i18n="success.text"></p>
+          <div class="success__details" id="successDetails"></div>
+          <button type="button" class="btn btn--ghost" id="againBtn" data-i18n="success.again"></button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ КОНТАКТЫ ============ -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <p class="footer__brand" data-site="name"></p>
+      <ul class="footer__socials" id="socials" data-i18n-aria="footer.contacts"></ul>
+      <ul class="footer__info" id="contactInfo"></ul>
+      <p class="footer__copy">© <span id="year"></span> <span data-site="name"></span></p>
+    </div>
+  </footer>
+
+  <!-- ============ МОДАЛЬНОЕ ОКНО после успешной заявки ============ -->
+  <dialog class="modal" id="successModal" aria-labelledby="modalTitle" aria-describedby="modalText">
+    <div class="modal__card">
+    <button type="button" class="modal__close" id="modalClose" data-i18n-aria="modal.close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <div class="modal__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></svg>
+    </div>
+    <p class="modal__eyebrow" data-i18n="modal.eyebrow"></p>
+    <h3 class="modal__title" id="modalTitle" data-i18n="modal.title"></h3>
+    <p class="modal__text" id="modalText" data-i18n="modal.text"></p>
+    <p class="modal__details" id="modalDetails"></p>
+    <button type="button" class="btn btn--primary btn--block" id="modalOk" data-i18n="modal.ok"></button>
+    </div>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
