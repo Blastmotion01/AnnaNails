@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { handleBooking, handleSlots } from "./lib/booking.js";
 import { handleTelegramUpdate } from "./lib/telegram-webhook.js";
 import { createStore } from "./lib/store.js";
+import { handleDigestCron } from "./lib/digest.js";
 import { loadEnv } from "./lib/env.js";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -87,6 +88,8 @@ async function handleApi(req, res) {
       secretHeader: req.headers["x-telegram-bot-api-secret-token"],
       env: process.env,
     });
+  } else if (url.pathname === "/api/cron/digest") {
+    result = await handleDigestCron({ authorization: req.headers.authorization, env: process.env });
   } else {
     return sendJson(res, 404, { ok: false });
   }

@@ -11,6 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadEnv } from "../lib/env.js";
 import { readCredentials, callTelegram, webhookSecret } from "../lib/telegram.js";
+import { MENU, MENU_KEYBOARD, DIGEST_HOUR } from "../lib/digest.js";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 loadEnv(path.join(ROOT, ".env"));
@@ -42,7 +43,7 @@ const url = `${site.origin}/api/telegram`;
 const ok = await callTelegram(creds, "setWebhook", {
   url,
   secret_token: webhookSecret(creds.token),
-  allowed_updates: ["callback_query"],
+  allowed_updates: ["callback_query", "message"],
   drop_pending_updates: true,
 });
 if (!ok) {
@@ -50,7 +51,25 @@ if (!ok) {
   process.exit(1);
 }
 
+// Команды в меню «/» бота
+await callTelegram(creds, "setMyCommands", {
+  commands: [
+    { command: "today", description: MENU.today },
+    { command: "tomorrow", description: MENU.tomorrow },
+  ],
+});
+
+// Сообщение с постоянными кнопками меню внизу чата
+await callTelegram(creds, "sendMessage", {
+  chat_id: creds.chatId,
+  text:
+    "Меню записей подключено.\n\n" +
+    `Кнопки внизу чата — «${MENU.today}» и «${MENU.tomorrow}».\n` +
+    `Каждый вечер в ${DIGEST_HOUR}:00 список на завтра будет приходить сам.`,
+  reply_markup: MENU_KEYBOARD,
+});
+
 const info = await callTelegram(creds, "getWebhookInfo", {});
-console.log(`\n  ✓ Кнопка «Отменить запись» подключена: ${url}`);
+console.log(`\n  ✓ Кнопки заявок и меню записей подключены: ${url}`);
 if (info?.last_error_message) console.log(`  ⚠ Последняя ошибка Telegram: ${info.last_error_message}`);
 console.log("");
