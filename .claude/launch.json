@@ -4,7 +4,7 @@
     {
       "name": "booking",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["server.js"],
+      "runtimeArgs": ["E:\\Project\\AnnaNails\\server.js"],
       "port": 3000,
       "autoPort": true
     }

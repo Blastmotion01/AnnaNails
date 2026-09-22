@@ -131,10 +131,47 @@ function isSlotPast(iso, time) {
   return h * 60 + m < now.getHours() * 60 + now.getMinutes() + SCHEDULE.minLeadMinutes;
 }
 
+/* ---------- Занятое время (с сервера) ---------- */
+const SLOTS_URL = "/api/slots";
+let busy = {}; // { "ГГГГ-ММ-ДД": ["ЧЧ:ММ", ...] }
+
+const isSlotBusy = (iso, time) => busy[iso]?.includes(time) ?? false;
+const isSlotUnavailable = (iso, time) => isSlotPast(iso, time) || isSlotBusy(iso, time);
+
+/** Загружает занятые слоты. Без аргумента — на весь период записи. */
+async function loadBusy(date) {
+  try {
+    const query = date ? `?from=${date}&to=${date}` : "";
+    const res = await fetch(SLOTS_URL + query, { cache: "no-store" });
+    if (!res.ok) return;
+    const json = await res.json();
+    if (!json.enabled) return;
+    if (date) {
+      if (json.busy[date]) busy[date] = json.busy[date];
+      else delete busy[date];
+    } else {
+      busy = json.busy || {};
+    }
+  } catch {
+    // Нет связи — показываем расписание без учёта броней, сервер всё равно не даст занять слот дважды
+  }
+}
+
+/** Перерисовать календарь и время после обновления занятости */
+function refreshAvailability() {
+  calendar.refresh();
+  const iso = fields.date.value;
+  if (iso && fields.time.value && isSlotUnavailable(iso, fields.time.value)) {
+    fields.time.value = "";
+    updateSummary();
+  }
+  renderSlots();
+}
+
 function isDateDisabled(iso) {
   if (!SCHEDULE.workingDays.includes(fromIso(iso).getDay())) return true;
   if (SCHEDULE.daysOff.includes(iso)) return true;
-  return slotsFor(iso).every((time) => isSlotPast(iso, time)); // сегодня всё время уже прошло
+  return slotsFor(iso).every((time) => isSlotUnavailable(iso, time)); // всё время прошло или занято
 }
 
 /* ==========================================================
@@ -285,6 +322,10 @@ function initDateTime() {
       validateField("date");
       setError("time", "");
       updateSummary();
+      // Уточняем занятость выбранного дня: пока клиент смотрел сайт, время могли занять
+      loadBusy(iso).then(() => {
+        if (fields.date.value === iso) refreshAvailability();
+      });
     },
   });
 
@@ -313,11 +354,15 @@ function renderSlots() {
   const selected = fields.time.value;
   slotsEl.innerHTML = slotsFor(iso)
     .map((time) => {
-      const past = isSlotPast(iso, time);
-      const active = time === selected && !past;
-      return `<button type="button" class="slot${active ? " is-selected" : ""}" role="radio"
-        aria-checked="${active}" data-time="${esc(time)}"
-        ${past ? `disabled aria-label="${esc(time)}, ${esc(t("cal.unavailable"))}"` : ""}>${esc(time)}</button>`;
+      const taken = isSlotBusy(iso, time);
+      const off = taken || isSlotPast(iso, time);
+      const active = time === selected && !off;
+      const note = taken ? t("slots.busy") : t("cal.unavailable");
+      return `<button type="button" class="slot${active ? " is-selected" : ""}${taken ? " is-busy" : ""}"
+        role="radio" aria-checked="${active}" data-time="${esc(time)}"
+        ${off ? `disabled aria-label="${esc(time)}, ${esc(note)}"` : ""}>
+        <span class="slot__time">${esc(time)}</span>${taken ? `<span class="slot__note">${esc(note)}</span>` : ""}
+      </button>`;
     })
     .join("");
 }
@@ -406,11 +451,18 @@ async function onSubmit(e) {
       return;
     }
     if (json.errors) {
+      if (json.code === "time_taken") {
+        // Время только что занял другой клиент — помечаем и обновляем занятость дня
+        busy[data.date] = [...new Set([...(busy[data.date] || []), data.time])];
+        refreshAvailability();
+        loadBusy(data.date).then(refreshAvailability);
+      } else if (json.errors.time || json.errors.date) {
+        renderSlots(); // время могло пройти
+      }
       Object.entries(json.errors).forEach(([name, code]) => setError(name, code));
       const first = Object.keys(json.errors)[0];
       if (first) focusField(first);
-      // Время могло пройти — обновим список слотов
-      if (json.errors.time || json.errors.date) renderSlots();
+      if (json.code === "time_taken") return; // пояснение уже под полем «Время»
     }
     showAlert(json.code || "send_failed");
   } catch {
@@ -437,6 +489,7 @@ function renderSuccessDetails() {
 
 function showSuccess(data) {
   lastBooking = data;
+  busy[data.date] = [...new Set([...(busy[data.date] || []), data.time])];
   renderSuccessDetails();
   form.hidden = true;
   const success = $("#success");
@@ -565,3 +618,6 @@ fields.telegram.addEventListener("blur", () => {
 
 form.addEventListener("submit", onSubmit);
 $("#againBtn").addEventListener("click", resetForm);
+
+// Занятое время на весь период записи — календарь блокирует полностью занятые дни
+loadBusy().then(refreshAvailability);

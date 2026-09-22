@@ -10,7 +10,9 @@ import http from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { handleBooking } from "./lib/booking.js";
+import { handleBooking, handleSlots } from "./lib/booking.js";
+import { handleTelegramUpdate } from "./lib/telegram-webhook.js";
+import { createStore } from "./lib/store.js";
 import { loadEnv } from "./lib/env.js";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -55,19 +57,40 @@ function readBody(req, limit = 20_000) {
   });
 }
 
-async function handleApi(req, res) {
+async function readJson(req, res) {
   if (req.method !== "POST") return sendJson(res, 405, { ok: false, code: "invalid_request" });
   if (!String(req.headers["content-type"] || "").includes("application/json")) {
     return sendJson(res, 415, { ok: false, code: "invalid_request" });
   }
-  let body;
   try {
-    body = JSON.parse(await readBody(req));
+    return JSON.parse(await readBody(req));
   } catch {
     return sendJson(res, 400, { ok: false, code: "invalid_request" });
   }
-  const { status, json } = await handleBooking(body, { ip: req.socket.remoteAddress, env: process.env });
-  sendJson(res, status, json);
+}
+
+async function handleApi(req, res) {
+  const url = new URL(req.url, "http://localhost");
+  let result;
+
+  if (url.pathname === "/api/slots") {
+    if (req.method !== "GET") return sendJson(res, 405, { ok: false, code: "invalid_request" });
+    result = await handleSlots(Object.fromEntries(url.searchParams), { env: process.env });
+  } else if (url.pathname === "/api/booking") {
+    const body = await readJson(req, res);
+    if (res.writableEnded) return;
+    result = await handleBooking(body, { ip: req.socket.remoteAddress, env: process.env });
+  } else if (url.pathname === "/api/telegram") {
+    const body = await readJson(req, res);
+    if (res.writableEnded) return;
+    result = await handleTelegramUpdate(body, {
+      secretHeader: req.headers["x-telegram-bot-api-secret-token"],
+      env: process.env,
+    });
+  } else {
+    return sendJson(res, 404, { ok: false });
+  }
+  sendJson(res, result.status, result.json);
 }
 
 async function serveStatic(req, res) {
@@ -94,7 +117,7 @@ async function serveStatic(req, res) {
 
 http
   .createServer((req, res) => {
-    if (req.url.startsWith("/api/booking")) return handleApi(req, res);
+    if (req.url.startsWith("/api/")) return handleApi(req, res);
     return serveStatic(req, res);
   })
   .listen(PORT, () => {
@@ -104,5 +127,11 @@ http
       configured
         ? "  ✓ Telegram настроен — заявки будут приходить в бот\n"
         : "  ⚠ Telegram не настроен — заявки НЕ будут доставлены.\n    Запустите: npm run telegram:setup\n"
+    );
+    const store = createStore(process.env);
+    console.log(
+      store?.kind === "redis"
+        ? "  ✓ Учёт броней: база Upstash Redis\n"
+        : "  ⓘ Учёт броней: в памяти (сбрасывается при перезапуске). Для постоянного — подключите Upstash Redis\n"
     );
   });
